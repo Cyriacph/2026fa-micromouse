@@ -340,7 +340,7 @@ If you want to use PlatformIO, follow the instructions below. If you want to use
 
 To ensure that everything is working properly, and that your soldering work is correct, we want to test every components of the micromouse.  
 
-For that, we provide you with a ```healthcheck.cpp``` file, which contains functions to check if everything is working properly: It will help you read the sensors, check that the motors work as expected and that the value read by the encoders are correct.
+For that, we provide you with a ```healthcheck.bac``` file, which contains functions to check if everything is working properly: It will help you read the sensors, check that the motors work as expected and that the value read by the encoders are correct. To run the code, first rename the file to ```healthcheck.cpp```. Additionally, rename ```main.cpp``` to ```main.bac``` (or similar) to prevent it from being compiled.
 
 - Sensors: If you notice that the sensors doesn't work or you have some $I^2C$ related errors (appearing on the serial monitor), then first check in the pin assignment (this is probably due to some faulty X-SHUT pin assignment) in ```wiring.h```. If the pin assignment is correct, check your soldering work again. Also, if the values are not accurate, you may want to adjust the offset values in ```config.h```.
 - Motors: If the motors don't go in the expected direction, then you should invert the pins of the motors in ```wiring.h```. If a motor doesn't work at all, then recheck the pins and/or your soldering work.
