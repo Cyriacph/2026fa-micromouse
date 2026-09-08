@@ -45,18 +45,21 @@ In order to achieve precise movement, the micromouse makes extensive use of cont
 
 ### Hardware Overview
 
-The micromouse consists of the following components:
+You should have recieved a component bag with the following:
 
 - 2x N20 Motors 500RPM
+- 2x set of cables for the Motors
 - 1x Motor Driver MX1508
 - 1x Time-Of-Flight sensors ToF400C-VL53L1X
 - 1x Microcontroller ESP32 30pin
-- 1x 9V battery
+- 2x 9V battery
 - 1x Buck converter LM2596
 - 1x 9V battery connector
 - 2x Lego axels 4L
 - 2x Lego tires
 - 4x Lego gears
+- 20x Jumper wires female to female
+- 1x Soldering kit
 
 
 ⚠️ Check that no parts are missing before starting the project !
@@ -144,7 +147,7 @@ Implement an algorithm that:
 
 ⚠️ At all times during the assembly process, refer to this document or to the provided `.step` file in order to avoid mistakes.
 
-1. First things first, you need to laser-cut and 3D-print the parts of the micromouse. You can find the CAD of the parts to be laser-cut and 3D-printed in the project repository.
+1. First things first, you need to laser-cut and 3D-print the parts of the micromouse. You will need to open the step file and export the 3D parts you need. The part you need to laser-cut are given to you as `.dxf` in the CAD folder.
 
 	You need to laser-cut the following parts:
     - 1x Base plate
@@ -161,7 +164,7 @@ Implement an algorithm that:
    	- 1x Shaft holder
    	- 1x Backplate (Buck converter holder)
 
-	⚠️ Most 3D parts were designed to require minimal to no supports. Be sure to disable them in PrusaSlicer when not necessary and mind the orientation of the parts when scheduling a print.
+	⚠️ Most 3D parts were designed to require minimal to no supports. Be sure to disable them in PrusaSlicer when not necessary and mind the orientation of the parts when scheduling a print. Make sure to show them to an assistant or to a staff member of the SPOT before printing them.
 
 	### Useful PrusaSlicer Extras
   
@@ -201,7 +204,9 @@ Implement an algorithm that:
 ✅ After these steps, the basic mechanism of your mouse should be complete!
 
 ### Soldering
-#### General Advice 
+#### General Advice
+⚠️ You should complete the soldering tutorial before soldering the micromouse and consider watching some additional soldering tutorials, such as <a>https://www.youtube.com/watch?v=37mW1i_oEpA</a>.
+
 For this project, we recommend avoiding soldering wires directly to the boards. Instead, solder male header pins to the boards and create female cable assemblies to connect them.
 
 When soldering male header pins to boards, make sure everything is stable and will not slip or move while you are heating the board and pins with the soldering iron. When soldering straight pins, you can use a breadboard to stabilize both the board and the pins (there is no need to push the pins too far into the breadboard). Make sure you adequately heat both the board and the pin before applying solder. The solder should not bead up, as that means the joint is too cold. Instead, it should flow smoothly around the metal ring and the pin, allowing you to add solder until you are satisfied with the amount.
