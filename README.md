@@ -45,7 +45,7 @@ In order to achieve precise movement, the micromouse makes extensive use of cont
 
 ### Hardware Overview
 
-You should have recieved a component bag with the following:
+You should have received a component bag with the following:
 
 - 2x N20 Motors 500RPM
 - 2x set of cables for the Motors
