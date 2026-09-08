@@ -4,7 +4,7 @@
 
 <!--<p align="center"><img src="https://github.com/user-attachments/assets/1fc31847-2d3d-4c5c-aa62-841a447577e7" width=600></p>-->
 
-<p align="center"><img src="./resources/2026Anim.gif" width=600></p>
+<!-- <p align="center"><img src="./resources/2026Anim.gif" width=600></p> -->
 
 ## Project overview
 
