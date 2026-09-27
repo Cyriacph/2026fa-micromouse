@@ -21,15 +21,19 @@ void IRAM_ATTR isrRight() { encRight += (digitalRead(ENC_R_GREEN) ? 1 : -1); }
 
 // MX1508: fwd pin gets PWM to go forward, rev pin for backward, both LOW = coast
 void setMotor(int fwdPin, int revPin, int speed) {
-  if      (speed > 0) { ledcWritePin(fwdPin, speed); ledcWritePin(revPin, 0); }
-  else if (speed < 0) { ledcWritePin(fwdPin, 0);     ledcWritePin(revPin, -speed); }
-  else                { ledcWritePin(fwdPin, 0);    ledcWritePin(revPin, 0); }
+  int fwdCh = (fwdPin == LEFT_FWD) ? CH_L_FWD : CH_R_FWD;
+  int revCh = (fwdPin == LEFT_FWD) ? CH_L_REV : CH_R_REV;
+  if      (speed > 0) { ledcWrite(fwdCh, speed); ledcWrite(revCh, 0); }
+  else if (speed < 0) { ledcWrite(fwdCh, 0);     ledcWrite(revCh, -speed); }
+  else                { ledcWrite(fwdCh, 0);     ledcWrite(revCh, 0); }
 }
 
-// Both pins HIGH = short brake (active braking)
+// MX1508: full HIGH both sides = short brake, both LOW = coast
 void brakeMotor(int fwdPin, int revPin) {
-  digitalWrite(fwdPin, HIGH);
-  digitalWrite(revPin, HIGH);
+  int fwdCh = (fwdPin == LEFT_FWD) ? CH_L_FWD : CH_R_FWD;
+  int revCh = (fwdPin == LEFT_FWD) ? CH_L_REV : CH_R_REV;
+  ledcWrite(fwdCh, 255);   // full HIGH both sides = short brake
+  ledcWrite(revCh, 255);
 }
 
 // Run a motor for 1.2s, brake, print how many ticks it did
@@ -55,8 +59,10 @@ void setup() {
 
   // 20 kHz PWM so the motors don't whine, 8-bit so duty = 0..255
   int freq = 20000, res = 8;
-  ledcAttach(LEFT_FWD, freq, res);  ledcAttach(LEFT_REV, freq, res);
-  ledcAttach(RIGHT_FWD, freq, res); ledcAttach(RIGHT_REV, freq, res);
+  ledcSetup(CH_L_FWD, freq, res); ledcAttachPin(LEFT_FWD, CH_L_FWD);
+  ledcSetup(CH_L_REV, freq, res); ledcAttachPin(LEFT_REV, CH_L_REV);
+  ledcSetup(CH_R_FWD, freq, res); ledcAttachPin(RIGHT_FWD, CH_R_FWD);
+  ledcSetup(CH_R_REV, freq, res); ledcAttachPin(RIGHT_REV, CH_R_REV);
 
   Serial.println("\n=== Motor bench test ===");
   delay(3000); // hands clear before the motors move
