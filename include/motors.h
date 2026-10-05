@@ -3,7 +3,7 @@
  * @brief Dual DC motor driver abstraction for Micromouse.
  *
  * Provides high-level control of two DC motors, including forward/backward
- * motion, in-place turning, stopping, braking, and gyro-based yaw turns.
+ * motion, stopping, and active braking.
  */
 
 #pragma once
@@ -45,8 +45,27 @@ public:
    */
   bool begin(const MotorConfig& cfg);
 
+  /**
+   * @brief Sets the left motor speed.
+   *
+   * Positive values command forward motion and negative values command
+   * reverse motion. The value is limited to the configured PWM range.
+   */
   void setLeft(int speed);
+
+  /**
+   * @brief Sets the right motor speed.
+   *
+   * Positive values command forward motion and negative values command
+   * reverse motion. The value is limited to the configured PWM range.
+   */
   void setRight(int speed);
+
+  /**
+   * @brief Sets both motor speeds independently.
+   *
+   * Different values can be used to correct the robot's path or turn it.
+   */
   void setBoth(int leftSpeed, int rightSpeed);
 
   /**
