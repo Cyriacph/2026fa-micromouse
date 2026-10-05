@@ -1,16 +1,19 @@
 #include <Arduino.h>
 
+#include "config.h"
+#include "wiring.h"
+
 // Pin assignments
-static const int LEFT_FWD  = 26;  // MX1508 IN1
-static const int LEFT_REV  = 25;  // MX1508 IN2
-static const int RIGHT_FWD = 33;  // MX1508 IN3
-static const int RIGHT_REV = 32;  // MX1508 IN4
+static const int LEFT_FWD  = MTR_A_IN1;  // MX1508 IN1
+static const int LEFT_REV  = MTR_A_IN2;  // MX1508 IN2
+static const int RIGHT_FWD = MTR_B_IN1;  // MX1508 IN3
+static const int RIGHT_REV = MTR_B_IN2;  // MX1508 IN4
 
 // Encoders: yellow = tick signal, green = direction
-static const int ENC_L_YELLOW = 15;
-static const int ENC_L_GREEN  = 2;
-static const int ENC_R_YELLOW = 4;
-static const int ENC_R_GREEN  = 5;
+static const int ENC_L_YELLOW = ENC_A_CH_A;
+static const int ENC_L_GREEN  = ENC_A_CH_B;
+static const int ENC_R_YELLOW = ENC_B_CH_A;
+static const int ENC_R_GREEN  = ENC_B_CH_B;
 
 // volatile because the ISRs modify them outside the main program flow
 static volatile long encLeft = 0, encRight = 0;
@@ -32,8 +35,8 @@ void setMotor(int fwdPin, int revPin, int speed) {
 void brakeMotor(int fwdPin, int revPin) {
   int fwdCh = (fwdPin == LEFT_FWD) ? CH_L_FWD : CH_R_FWD;
   int revCh = (fwdPin == LEFT_FWD) ? CH_L_REV : CH_R_REV;
-  ledcWrite(fwdCh, 255);   // full HIGH both sides = short brake
-  ledcWrite(revCh, 255);
+  ledcWrite(fwdCh, MAX_PWM);   // full HIGH both sides = short brake
+  ledcWrite(revCh, MAX_PWM);
 }
 
 // Run a motor for 1.2s, brake, print how many ticks it did
@@ -58,11 +61,10 @@ void setup() {
   attachInterrupt(ENC_R_YELLOW, isrRight, RISING);
 
   // 20 kHz PWM so the motors don't whine, 8-bit so duty = 0..255
-  int freq = 20000, res = 8;
-  ledcSetup(CH_L_FWD, freq, res); ledcAttachPin(LEFT_FWD, CH_L_FWD);
-  ledcSetup(CH_L_REV, freq, res); ledcAttachPin(LEFT_REV, CH_L_REV);
-  ledcSetup(CH_R_FWD, freq, res); ledcAttachPin(RIGHT_FWD, CH_R_FWD);
-  ledcSetup(CH_R_REV, freq, res); ledcAttachPin(RIGHT_REV, CH_R_REV);
+  ledcSetup(CH_L_FWD, PWM_FREQUENCY, PWM_RESOLUTION); ledcAttachPin(LEFT_FWD, CH_L_FWD);
+  ledcSetup(CH_L_REV, PWM_FREQUENCY, PWM_RESOLUTION); ledcAttachPin(LEFT_REV, CH_L_REV);
+  ledcSetup(CH_R_FWD, PWM_FREQUENCY, PWM_RESOLUTION); ledcAttachPin(RIGHT_FWD, CH_R_FWD);
+  ledcSetup(CH_R_REV, PWM_FREQUENCY, PWM_RESOLUTION); ledcAttachPin(RIGHT_REV, CH_R_REV);
 
   Serial.println("\n=== Motor bench test ===");
   delay(3000); // hands clear before the motors move

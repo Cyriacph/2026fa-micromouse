@@ -45,6 +45,10 @@ public:
    */
   bool begin(const MotorConfig& cfg);
 
+  void setLeft(int speed);
+  void setRight(int speed);
+  void setBoth(int leftSpeed, int rightSpeed);
+
   /**
    * @brief Stops both motors (coast).
    */

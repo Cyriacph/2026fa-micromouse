@@ -35,6 +35,8 @@ public:
    */
   int getFrontDistance();
 
+  bool isReady() const;
+
 private:
   /**
    * @brief Initializes the front-facing sensor.
@@ -42,6 +44,7 @@ private:
   void initCenterSensor();
 
   VL53L1X center_sensor;  ///< Front-facing distance sensor
+  bool ready = false;
 
 };
 
