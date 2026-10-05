@@ -16,8 +16,8 @@
 #include <Arduino.h>
 
 /* ---------- geometry (measure yours!) ---------- */
-constexpr float WHEEL_DIAMETER = 0;   // cm
-constexpr int SPR = 0; // steps per revolution
+constexpr float WHEEL_DIAMETER = 3.04f;   // cm
+constexpr int SPR = 33; // steps per revolution: SPR = E * Nw/Nm (not accurate)
 
 /* ---------- motion constants ---------- */
 constexpr int BASE_PWM = 150; // initial base PWM; tune on the bench
@@ -25,7 +25,7 @@ constexpr int TURN_PWM = 170; // initial turn PWM; tune on the bench
 constexpr int MIN_PWM = 0;
 constexpr int MAX_PWM = 255;
 
-// Flip these values if motor wiring or encoder polarity is reversed.
+// Flip these values if motor wiring or encoder polarity is reversed
 constexpr int MOTOR_LEFT_DIRECTION = 1;
 constexpr int MOTOR_RIGHT_DIRECTION = 1;
 constexpr int ENCODER_LEFT_DIRECTION = 1;
@@ -40,8 +40,7 @@ constexpr int PWM_FREQUENCY = 20000;
 constexpr int PWM_RESOLUTION = 8;
 
 // ---------- ToF sensor offsets (mm) ----------
-// linear regression on sensors to calbrate them 
-// CALIBRATE YOUR OWN!
+// linear regression on sensors to calbrate them
 constexpr float TOF_CENTER_OFFSET = 0.0f;
 constexpr float TOF_CENTER_SLOPE = 1.0f;
 

@@ -26,7 +26,7 @@
 #define I2C_SCL 22
 
 // ---------- MOTOR / ENCODER MAP ----------
-#define MTR_A_IN1 26  // D12  (⚠ boot-strap pin)
+#define MTR_A_IN1 26  // D12 
 #define MTR_A_IN2 25  // D14
 #define MTR_B_IN1 33  // D27
 #define MTR_B_IN2 32  // D26
