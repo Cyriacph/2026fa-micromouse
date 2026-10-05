@@ -3,6 +3,7 @@
 #include "config.h"
 #include "wiring.h"
 #include "motors.h"
+#include "encoders.h"
 
 // Pin assignments
 static const int LEFT_FWD  = MTR_A_IN1;  // MX1508 IN1
@@ -13,22 +14,14 @@ static const int RIGHT_REV = MTR_B_IN2;  // MX1508 IN4
 // High-level controller for both motors
 Motors motors;
 
-// Encoders: yellow = tick signal, green = direction
-static const int ENC_L_YELLOW = ENC_A_CH_A;
-static const int ENC_L_GREEN  = ENC_A_CH_B;
-static const int ENC_R_YELLOW = ENC_B_CH_A;
-static const int ENC_R_GREEN  = ENC_B_CH_B;
-
-// volatile because the ISRs modify them outside the main program flow
-static volatile long encLeft = 0, encRight = 0;
-
-// One tick = one RISING edge on yellow. Green = directoin: HIGH = forward, LOW = backward
-void IRAM_ATTR isrLeft()  { encLeft  += (digitalRead(ENC_L_GREEN) ? 1 : -1); }
-void IRAM_ATTR isrRight() { encRight += (digitalRead(ENC_R_GREEN) ? 1 : -1); }
+// Read the encoder associated with the motor being tested.
+long readEncoder(bool leftMotor) {
+  return leftMotor ? getEncoderLeft() : getEncoderRight();
+}
 
 // Run one motor for 1.2 seconds, brake, and print its encoder change.
-void testRun(const char* name, bool leftMotor, int speed, volatile long& enc) {
-  long before = enc;
+void testRun(const char* name, bool leftMotor, int speed) {
+  const long before = readEncoder(leftMotor);
   Serial.printf("[%s] speed=%d  ", name, speed);
   if (leftMotor) {
     motors.setLeft(speed);
@@ -39,18 +32,16 @@ void testRun(const char* name, bool leftMotor, int speed, volatile long& enc) {
   motors.brake();
   motors.stop();
   delay(500);
-  Serial.printf("encoder delta = %ld\n", (long)enc - before);
+  const long after = readEncoder(leftMotor);
+  Serial.printf("encoder delta = %ld\n", after - before);
 }
 
 void setup() {
   Serial.begin(115200);
   delay(1000);
 
-  // Configure the encoder pins and attach interrupts to count ticks
-  pinMode(ENC_L_YELLOW, INPUT); pinMode(ENC_L_GREEN,  INPUT);
-  pinMode(ENC_R_YELLOW, INPUT); pinMode(ENC_R_GREEN,  INPUT);
-  attachInterrupt(ENC_L_YELLOW, isrLeft,  RISING);
-  attachInterrupt(ENC_R_YELLOW, isrRight, RISING);
+  // Let the encoder module configure its pins and interrupt handlers.
+  initEncoders();
 
   // Configure the motors with the correct pins and PWM settings
   MotorConfig motorConfig;
@@ -71,10 +62,10 @@ void setup() {
   delay(3000); // hands clear before the motors move
 
   // fwd should give positive deltas, rev negative ones
-  testRun("LEFT fwd ", true,  150, encLeft);
-  testRun("LEFT rev ", true, -150, encLeft);
-  testRun("RIGHT fwd", false, 150, encRight);
-  testRun("RIGHT rev", false, -150, encRight);
+  testRun("LEFT fwd ", true,  150);
+  testRun("LEFT rev ", true, -150);
+  testRun("RIGHT fwd", false, 150);
+  testRun("RIGHT rev", false, -150);
 
   // feel the difference: coast = slow stop, brake = instant stop
   Serial.println("\n--- Coast vs brake (left motor) ---");
@@ -95,6 +86,7 @@ void loop() {
   static unsigned long last = 0;
   if (millis() - last >= 200) {
     last = millis();
-    Serial.printf("encLeft=%ld  encRight=%ld\n", (long)encLeft, (long)encRight);
+    Serial.printf("encLeft=%ld  encRight=%ld\n",
+                  getEncoderLeft(), getEncoderRight());
   }
 }
