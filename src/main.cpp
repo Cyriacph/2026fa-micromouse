@@ -16,28 +16,6 @@ static const int RIGHT_REV = MTR_B_IN2;  // MX1508 IN4
 Motors motors;
 ToF tof;
 
-// Read the encoder associated with the motor being tested.
-long readEncoder(bool leftMotor) {
-  return leftMotor ? getEncoderLeft() : getEncoderRight();
-}
-
-// Run one motor for 1.2 seconds, brake, and print its encoder change.
-void testRun(const char* name, bool leftMotor, int speed) {
-  const long before = readEncoder(leftMotor);
-  Serial.printf("[%s] speed=%d  ", name, speed);
-  if (leftMotor) {
-    motors.setLeft(speed);
-  } else {
-    motors.setRight(speed);
-  }
-  delay(1200);
-  motors.brake();
-  motors.stop();
-  delay(500);
-  const long after = readEncoder(leftMotor);
-  Serial.printf("encoder delta = %ld\n", after - before);
-}
-
 void setup() {
   Serial.begin(115200);
   delay(1000);
@@ -64,30 +42,12 @@ void setup() {
   motorConfig.max_pwm = MAX_PWM;
   motors.begin(motorConfig);
 
-  Serial.println("\n=== Motor bench test ===");
-  delay(3000); // hands clear before the motors move
-
-  // fwd should give positive deltas, rev negative ones
-  testRun("LEFT fwd ", true,  150);
-  testRun("LEFT rev ", true, -150);
-  testRun("RIGHT fwd", false, 150);
-  testRun("RIGHT rev", false, -150);
-
-  // feel the difference: coast = slow stop, brake = instant stop
-  Serial.println("\n--- Coast vs brake (left motor) ---");
-  motors.setLeft(200);
-  delay(1500);
-  motors.stop();  // coast
-  delay(1500);
-  motors.setLeft(200);
-  delay(1500);
-  motors.brake();
-  delay(1000);
-
-  Serial.println("\nSpin the shafts by hand, watch the counts:");
+  // The application starts in a safe state until motion logic is added.
+  motors.stop();
+  Serial.println("Hardware initialization complete; motors stopped");
 }
 
-// Just prints encoder counts every 200 ms for the manual test
+// Diagnostic loop only: autonomous motion will be added in a later step.
 void loop() {
   static unsigned long last = 0;
   if (millis() - last >= 200) {
