@@ -26,31 +26,18 @@ static volatile long encLeft = 0, encRight = 0;
 void IRAM_ATTR isrLeft()  { encLeft  += (digitalRead(ENC_L_GREEN) ? 1 : -1); }
 void IRAM_ATTR isrRight() { encRight += (digitalRead(ENC_R_GREEN) ? 1 : -1); }
 
-// MX1508: fwd pin gets PWM to go forward, rev pin for backward, both LOW = coast
-void setMotor(int fwdPin, int revPin, int speed) {
-  int fwdCh = (fwdPin == LEFT_FWD) ? CH_L_FWD : CH_R_FWD;
-  int revCh = (fwdPin == LEFT_FWD) ? CH_L_REV : CH_R_REV;
-  if      (speed > 0) { ledcWrite(fwdCh, speed); ledcWrite(revCh, 0); }
-  else if (speed < 0) { ledcWrite(fwdCh, 0);     ledcWrite(revCh, -speed); }
-  else                { ledcWrite(fwdCh, 0);     ledcWrite(revCh, 0); }
-}
-
-// MX1508: full HIGH both sides = short brake, both LOW = coast
-void brakeMotor(int fwdPin, int revPin) {
-  int fwdCh = (fwdPin == LEFT_FWD) ? CH_L_FWD : CH_R_FWD;
-  int revCh = (fwdPin == LEFT_FWD) ? CH_L_REV : CH_R_REV;
-  ledcWrite(fwdCh, MAX_PWM);   // full HIGH both sides = short brake
-  ledcWrite(revCh, MAX_PWM);
-}
-
-// Run a motor for 1.2s, brake, print how many ticks it did
-void testRun(const char* name, int fwdPin, int revPin, int speed, volatile long& enc) {
+// Run one motor for 1.2 seconds, brake, and print its encoder change.
+void testRun(const char* name, bool leftMotor, int speed, volatile long& enc) {
   long before = enc;
   Serial.printf("[%s] speed=%d  ", name, speed);
-  setMotor(fwdPin, revPin, speed);
+  if (leftMotor) {
+    motors.setLeft(speed);
+  } else {
+    motors.setRight(speed);
+  }
   delay(1200);
-  brakeMotor(fwdPin, revPin);
-  setMotor(fwdPin, revPin, 0);
+  motors.brake();
+  motors.stop();
   delay(500);
   Serial.printf("encoder delta = %ld\n", (long)enc - before);
 }
@@ -84,20 +71,20 @@ void setup() {
   delay(3000); // hands clear before the motors move
 
   // fwd should give positive deltas, rev negative ones
-  testRun("LEFT fwd ", LEFT_FWD, LEFT_REV,  150, encLeft);
-  testRun("LEFT rev ", LEFT_FWD, LEFT_REV, -150, encLeft);
-  testRun("RIGHT fwd", RIGHT_FWD, RIGHT_REV, 150, encRight);
-  testRun("RIGHT rev", RIGHT_FWD, RIGHT_REV, -150, encRight);
+  testRun("LEFT fwd ", true,  150, encLeft);
+  testRun("LEFT rev ", true, -150, encLeft);
+  testRun("RIGHT fwd", false, 150, encRight);
+  testRun("RIGHT rev", false, -150, encRight);
 
   // feel the difference: coast = slow stop, brake = instant stop
   Serial.println("\n--- Coast vs brake (left motor) ---");
-  setMotor(LEFT_FWD, LEFT_REV, 200);
+  motors.setLeft(200);
   delay(1500);
-  setMotor(LEFT_FWD, LEFT_REV, 0);  // coast
+  motors.stop();  // coast
   delay(1500);
-  setMotor(LEFT_FWD, LEFT_REV, 200);
+  motors.setLeft(200);
   delay(1500);
-  brakeMotor(LEFT_FWD, LEFT_REV);    // brake
+  motors.brake();
   delay(1000);
 
   Serial.println("\nSpin the shafts by hand, watch the counts:");
