@@ -21,10 +21,10 @@ public:
   ToF();
 
   /**
-   * @brief Initializes all Time-of-Flight sensors.
+    * @brief Initializes the front Time-of-Flight sensor.
    *
-   * Configures I2C communication, initializes each sensor,
-   * and applies sensor-specific offsets.
+    * Configures I2C communication, resets the sensor through XSHUT,
+    * initializes the VL53L1X, and starts continuous ranging.
    */
   void initSensors();
 
@@ -35,14 +35,14 @@ public:
    */
   int getFrontDistance();
 
+  /**
+   * @brief Reports whether sensor initialization succeeded.
+   *
+   * @return true when the sensor can be read, otherwise false.
+   */
   bool isReady() const;
 
 private:
-  /**
-   * @brief Initializes the front-facing sensor.
-   */
-  void initCenterSensor();
-
   VL53L1X center_sensor;  ///< Front-facing distance sensor
   bool ready = false;
 

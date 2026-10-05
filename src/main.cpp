@@ -4,6 +4,7 @@
 #include "wiring.h"
 #include "motors.h"
 #include "encoders.h"
+#include "ToF.h"
 
 // Pin assignments
 static const int LEFT_FWD  = MTR_A_IN1;  // MX1508 IN1
@@ -13,6 +14,7 @@ static const int RIGHT_REV = MTR_B_IN2;  // MX1508 IN4
 
 // High-level controller for both motors
 Motors motors;
+ToF tof;
 
 // Read the encoder associated with the motor being tested.
 long readEncoder(bool leftMotor) {
@@ -42,6 +44,10 @@ void setup() {
 
   // Let the encoder module configure its pins and interrupt handlers.
   initEncoders();
+
+  // Initialize the front distance sensor before the bench test starts.
+  tof.initSensors();
+  Serial.println(tof.isReady() ? "ToF sensor ready" : "ToF sensor failed");
 
   // Configure the motors with the correct pins and PWM settings
   MotorConfig motorConfig;
@@ -88,5 +94,6 @@ void loop() {
     last = millis();
     Serial.printf("encLeft=%ld  encRight=%ld\n",
                   getEncoderLeft(), getEncoderRight());
+    Serial.printf("front distance=%d mm\n", tof.getFrontDistance());
   }
 }
