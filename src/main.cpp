@@ -2,12 +2,16 @@
 
 #include "config.h"
 #include "wiring.h"
+#include "motors.h"
 
 // Pin assignments
 static const int LEFT_FWD  = MTR_A_IN1;  // MX1508 IN1
 static const int LEFT_REV  = MTR_A_IN2;  // MX1508 IN2
 static const int RIGHT_FWD = MTR_B_IN1;  // MX1508 IN3
 static const int RIGHT_REV = MTR_B_IN2;  // MX1508 IN4
+
+// High-level controller for both motors
+Motors motors;
 
 // Encoders: yellow = tick signal, green = direction
 static const int ENC_L_YELLOW = ENC_A_CH_A;
@@ -55,16 +59,26 @@ void setup() {
   Serial.begin(115200);
   delay(1000);
 
+  // Configure the encoder pins and attach interrupts to count ticks
   pinMode(ENC_L_YELLOW, INPUT); pinMode(ENC_L_GREEN,  INPUT);
   pinMode(ENC_R_YELLOW, INPUT); pinMode(ENC_R_GREEN,  INPUT);
   attachInterrupt(ENC_L_YELLOW, isrLeft,  RISING);
   attachInterrupt(ENC_R_YELLOW, isrRight, RISING);
 
-  // 20 kHz PWM so the motors don't whine, 8-bit so duty = 0..255
-  ledcSetup(CH_L_FWD, PWM_FREQUENCY, PWM_RESOLUTION); ledcAttachPin(LEFT_FWD, CH_L_FWD);
-  ledcSetup(CH_L_REV, PWM_FREQUENCY, PWM_RESOLUTION); ledcAttachPin(LEFT_REV, CH_L_REV);
-  ledcSetup(CH_R_FWD, PWM_FREQUENCY, PWM_RESOLUTION); ledcAttachPin(RIGHT_FWD, CH_R_FWD);
-  ledcSetup(CH_R_REV, PWM_FREQUENCY, PWM_RESOLUTION); ledcAttachPin(RIGHT_REV, CH_R_REV);
+  // Configure the motors with the correct pins and PWM settings
+  MotorConfig motorConfig;
+  motorConfig.left.in1 = LEFT_FWD;
+  motorConfig.left.in2 = LEFT_REV;
+  motorConfig.left.ch1 = CH_L_FWD;
+  motorConfig.left.ch2 = CH_L_REV;
+  motorConfig.right.in1 = RIGHT_FWD;
+  motorConfig.right.in2 = RIGHT_REV;
+  motorConfig.right.ch1 = CH_R_FWD;
+  motorConfig.right.ch2 = CH_R_REV;
+  motorConfig.pwm_freq = PWM_FREQUENCY;
+  motorConfig.pwm_res = PWM_RESOLUTION;
+  motorConfig.max_pwm = MAX_PWM;
+  motors.begin(motorConfig);
 
   Serial.println("\n=== Motor bench test ===");
   delay(3000); // hands clear before the motors move
