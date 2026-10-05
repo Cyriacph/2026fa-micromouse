@@ -12,12 +12,16 @@ void StraightPid::reset() {
 }
 
 float StraightPid::update(long leftTicks, long rightTicks, float dtSeconds) {
+  // A positive error means the right wheel moved farther than the left.
   const float error = static_cast<float>(rightTicks - leftTicks);
+
+  // Accumulate error over time, but limit it to prevent integral windup.
   integral += error * dtSeconds;
   integral = constrain(integral, -integralLimit, integralLimit);
 
   float derivative = 0.0f;
   if (hasPreviousError && dtSeconds > 0.0f) {
+    // The derivative reacts to how quickly the wheel mismatch changes.
     derivative = (error - previousError) / dtSeconds;
   }
   previousError = error;

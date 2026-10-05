@@ -31,6 +31,14 @@ constexpr int MOTOR_RIGHT_DIRECTION = 1;
 constexpr int ENCODER_LEFT_DIRECTION = 1;
 constexpr int ENCODER_RIGHT_DIRECTION = 1;
 
+/* ---------- straight-line PID ---------- */
+constexpr float PID_KP = 1.5f;
+constexpr float PID_KI = 0.05f;
+constexpr float PID_KD = 0.1f;
+constexpr float PID_INTEGRAL_LIMIT = 1000.0f;
+constexpr unsigned long PID_PERIOD_MS = 10;
+constexpr bool PID_DRIVE_ENABLED = false;
+
 /* ---------- motor PWM ---------- */
 constexpr int CH_L_FWD = 0;
 constexpr int CH_L_REV = 1;

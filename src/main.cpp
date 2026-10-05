@@ -5,6 +5,7 @@
 #include "motors.h"
 #include "encoders.h"
 #include "ToF.h"
+#include "pid.h"
 
 // Pin assignments
 static const int LEFT_FWD  = MTR_A_IN1;  // MX1508 IN1
@@ -15,6 +16,34 @@ static const int RIGHT_REV = MTR_B_IN2;  // MX1508 IN4
 // High-level controller for both motors
 Motors motors;
 ToF tof;
+StraightPid straightPid(PID_KP, PID_KI, PID_KD, PID_INTEGRAL_LIMIT);
+long previousLeftTicks = 0;
+long previousRightTicks = 0;
+unsigned long lastPidUpdate = 0;
+
+void updateStraightDrive() {
+  const long leftTicks = getEncoderLeft();
+  const long rightTicks = getEncoderRight();
+  const long leftDelta = leftTicks - previousLeftTicks;
+  const long rightDelta = rightTicks - previousRightTicks;
+  const float correction = straightPid.update(
+      leftDelta, rightDelta, PID_PERIOD_MS / 1000.0f);
+
+  previousLeftTicks = leftTicks;
+  previousRightTicks = rightTicks;
+
+  const int leftSpeed = constrain(
+      static_cast<int>(BASE_PWM + correction), MIN_PWM, MAX_PWM);
+  const int rightSpeed = constrain(
+      static_cast<int>(BASE_PWM - correction), MIN_PWM, MAX_PWM);
+
+  if (PID_DRIVE_ENABLED) {
+    motors.setBoth(leftSpeed, rightSpeed);
+  } else {
+    // Keep the robot stationary until the physical PID test is enabled.
+    motors.stop();
+  }
+}
 
 void setup() {
   Serial.begin(115200);
@@ -44,14 +73,21 @@ void setup() {
 
   // The application starts in a safe state until motion logic is added.
   motors.stop();
+  lastPidUpdate = millis();
   Serial.println("Hardware initialization complete; motors stopped");
 }
 
-// Diagnostic loop only: autonomous motion will be added in a later step.
 void loop() {
-  static unsigned long last = 0;
-  if (millis() - last >= 200) {
-    last = millis();
+  const unsigned long now = millis();
+
+  if (now - lastPidUpdate >= PID_PERIOD_MS) {
+    lastPidUpdate = now;
+    updateStraightDrive();
+  }
+
+  static unsigned long lastDiagnostic = 0;
+  if (now - lastDiagnostic >= 200) {
+    lastDiagnostic = now;
     Serial.printf("encLeft=%ld  encRight=%ld\n",
                   getEncoderLeft(), getEncoderRight());
     Serial.printf("front distance=%d mm\n", tof.getFrontDistance());
