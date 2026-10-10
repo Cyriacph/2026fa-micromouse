@@ -59,6 +59,8 @@ private:
   int distanceSamples[FILTER_WINDOW_SIZE] = {0};
   uint8_t distanceSampleCount = 0;
   uint8_t nextSampleIndex = 0;
+  uint8_t consecutiveInvalidReads = 0;
+  int lastFilteredDistance = -1;
 
 };
 

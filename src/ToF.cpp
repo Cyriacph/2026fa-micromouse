@@ -41,12 +41,20 @@ int ToF::getFrontDistance() {
 
 int ToF::getFilteredFrontDistance() {
   const int currentDistance = getFrontDistance();
-  if (currentDistance >= 0) {
-    distanceSamples[nextSampleIndex] = currentDistance;
-    nextSampleIndex = (nextSampleIndex + 1) % FILTER_WINDOW_SIZE;
-    if (distanceSampleCount < FILTER_WINDOW_SIZE) {
-      ++distanceSampleCount;
+  // Reject impossible readings before they enter the rolling window.
+  if (currentDistance <= 0 || currentDistance > TOF_MAX_VALID_DISTANCE_MM) {
+    if (consecutiveInvalidReads < TOF_MAX_CONSECUTIVE_INVALID_READS) {
+      ++consecutiveInvalidReads;
+      return lastFilteredDistance;
     }
+    return -1;
+  }
+
+  consecutiveInvalidReads = 0;
+  distanceSamples[nextSampleIndex] = currentDistance;
+  nextSampleIndex = (nextSampleIndex + 1) % FILTER_WINDOW_SIZE;
+  if (distanceSampleCount < FILTER_WINDOW_SIZE) {
+    ++distanceSampleCount;
   }
 
   if (distanceSampleCount == 0) return -1;
@@ -56,7 +64,8 @@ int ToF::getFilteredFrontDistance() {
     orderedSamples[i] = distanceSamples[i];
   }
   std::sort(orderedSamples, orderedSamples + distanceSampleCount);
-  return orderedSamples[distanceSampleCount / 2];
+  lastFilteredDistance = orderedSamples[distanceSampleCount / 2];
+  return lastFilteredDistance;
 }
 
 bool ToF::isReady() const {

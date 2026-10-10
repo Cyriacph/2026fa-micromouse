@@ -39,6 +39,18 @@ constexpr float PID_INTEGRAL_LIMIT = 1000.0f;
 constexpr unsigned long PID_PERIOD_MS = 10;
 constexpr bool PID_DRIVE_ENABLED = true; // set to false to disable PID during bench testing
 
+/* ---------- obstacle avoidance ---------- */
+constexpr int OBSTACLE_DISTANCE_MM = 100;
+constexpr int OBSTACLE_CLEAR_DISTANCE_MM = 130;
+constexpr unsigned long SENSOR_PERIOD_MS = 50;
+constexpr unsigned long BRAKE_TIME_MS = 100;
+constexpr int BACK_CORRECTION_PWM = 100;
+constexpr unsigned long BACK_CORRECTION_MS = 80;
+constexpr unsigned long TURN_TIME_MS = 600;
+constexpr int TOF_MAX_VALID_DISTANCE_MM = 4000;
+// Keep using the last valid median through brief sensor timeouts (~1 second).
+constexpr uint8_t TOF_MAX_CONSECUTIVE_INVALID_READS = 20;
+
 /* ---------- serial motor test ---------- */
 constexpr int MOTOR_TEST_PWM = 200; // match the known-working healthcheck test
 constexpr unsigned long MOTOR_TEST_DURATION_MS = 500;
