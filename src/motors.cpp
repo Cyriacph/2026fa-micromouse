@@ -32,6 +32,10 @@ void writeMotor(const MotorPins& pins, int speed) {
 bool Motors::begin(const MotorConfig& cfg) {
   // Configure one PWM channel for each direction of each motor.
   motorConfig = cfg;
+  pinMode(cfg.left.in1, OUTPUT);
+  pinMode(cfg.left.in2, OUTPUT);
+  pinMode(cfg.right.in1, OUTPUT);
+  pinMode(cfg.right.in2, OUTPUT);
   ledcSetup(cfg.left.ch1, cfg.pwm_freq, cfg.pwm_res);
   ledcSetup(cfg.left.ch2, cfg.pwm_freq, cfg.pwm_res);
   ledcSetup(cfg.right.ch1, cfg.pwm_freq, cfg.pwm_res);

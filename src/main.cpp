@@ -20,29 +20,63 @@ StraightPid straightPid(PID_KP, PID_KI, PID_KD, PID_INTEGRAL_LIMIT);
 long previousLeftTicks = 0;
 long previousRightTicks = 0;
 unsigned long lastPidUpdate = 0;
+bool motorTestActive = false;
+unsigned long motorTestStarted = 0;
+bool pidTestActive = false;
+unsigned long pidTestStarted = 0;
 
-void updateStraightDrive() {
+void startMotorTest(int leftSpeed, int rightSpeed) {
+  motorTestActive = true;
+  motorTestStarted = millis();
+  motors.setBoth(leftSpeed, rightSpeed);
+}
+
+void handleSerialCommands() {
+  while (Serial.available() > 0) {
+    const char command = Serial.read();
+    if (command == 'l') {
+      startMotorTest(MOTOR_TEST_PWM, 0);
+      Serial.println("Testing left motor");
+    } else if (command == 'r') {
+      startMotorTest(0, MOTOR_TEST_PWM);
+      Serial.println("Testing right motor");
+    } else if (command == 'b') {
+      startMotorTest(MOTOR_TEST_PWM, MOTOR_TEST_PWM);
+      Serial.println("Testing both motors");
+    } else if (command == 'p') {
+      resetEncoders();
+      previousLeftTicks = 0;
+      previousRightTicks = 0;
+      pidTestActive = true;
+      pidTestStarted = millis();
+      lastPidUpdate = pidTestStarted;
+      Serial.println("PID test: driving straight, auto-stops");
+    } else if (command == 's') {
+      motorTestActive = false;
+      pidTestActive = false;     // ← add this line
+      motors.stop();
+      Serial.println("Motors stopped");
+    }
+  }
+}
+
+void updateStraightDrive(bool drive) {
   const long leftTicks = getEncoderLeft();
   const long rightTicks = getEncoderRight();
   const long leftDelta = leftTicks - previousLeftTicks;
   const long rightDelta = rightTicks - previousRightTicks;
   const float correction = straightPid.update(
       leftDelta, rightDelta, PID_PERIOD_MS / 1000.0f);
-
   previousLeftTicks = leftTicks;
   previousRightTicks = rightTicks;
+
+  if (!drive) return;
 
   const int leftSpeed = constrain(
       static_cast<int>(BASE_PWM + correction), MIN_PWM, MAX_PWM);
   const int rightSpeed = constrain(
       static_cast<int>(BASE_PWM - correction), MIN_PWM, MAX_PWM);
-
-  if (PID_DRIVE_ENABLED) {
-    motors.setBoth(leftSpeed, rightSpeed);
-  } else {
-    // Keep the robot stationary until the physical PID test is enabled.
-    motors.stop();
-  }
+  motors.setBoth(leftSpeed, rightSpeed);
 }
 
 void setup() {
@@ -51,6 +85,7 @@ void setup() {
 
   // Let the encoder module configure its pins and interrupt handlers.
   initEncoders();
+  resetEncoders();
 
   // Initialize the front distance sensor before the bench test starts.
   tof.initSensors();
@@ -75,14 +110,30 @@ void setup() {
   motors.stop();
   lastPidUpdate = millis();
   Serial.println("Hardware initialization complete; motors stopped");
+  Serial.println("Motor test commands: l=left, r=right, b=both, s=stop");
 }
 
 void loop() {
   const unsigned long now = millis();
+  handleSerialCommands();
 
-  if (now - lastPidUpdate >= PID_PERIOD_MS) {
+  if (motorTestActive && now - motorTestStarted >= MOTOR_TEST_DURATION_MS) {
+    motorTestActive = false;
+    motors.stop();
+    Serial.println("Motor test complete");
+  }
+
+  if (pidTestActive && now - pidTestStarted >= MOTOR_TEST_DURATION_MS) {
+    pidTestActive = false;
+    motors.stop();
+    Serial.printf("PID test complete: encLeft=%ld encRight=%ld (diff=%ld)\n",
+                  getEncoderLeft(), getEncoderRight(),
+                  getEncoderLeft() - getEncoderRight());
+  }
+
+  if (pidTestActive && now - lastPidUpdate >= PID_PERIOD_MS) {
     lastPidUpdate = now;
-    updateStraightDrive();
+    updateStraightDrive(true);
   }
 
   static unsigned long lastDiagnostic = 0;
@@ -90,6 +141,7 @@ void loop() {
     lastDiagnostic = now;
     Serial.printf("encLeft=%ld  encRight=%ld\n",
                   getEncoderLeft(), getEncoderRight());
-    Serial.printf("front distance=%d mm\n", tof.getFrontDistance());
+    Serial.printf("front distance=%d mm\n",
+                  tof.getFilteredFrontDistance());
   }
 }

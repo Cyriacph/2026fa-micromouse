@@ -36,6 +36,16 @@ public:
   int getFrontDistance();
 
   /**
+   * @brief Returns a median-filtered front distance.
+   *
+   * Keeps the latest five valid samples so one outlier does not immediately
+   * change the distance used by navigation logic.
+   *
+   * @return Filtered distance in millimeters, or -1 if no valid sample exists.
+   */
+  int getFilteredFrontDistance();
+
+  /**
    * @brief Reports whether sensor initialization succeeded.
    *
    * @return true when the sensor can be read, otherwise false.
@@ -43,8 +53,12 @@ public:
   bool isReady() const;
 
 private:
+  static constexpr uint8_t FILTER_WINDOW_SIZE = 5;
   VL53L1X center_sensor;  ///< Front-facing distance sensor
   bool ready = false;
+  int distanceSamples[FILTER_WINDOW_SIZE] = {0};
+  uint8_t distanceSampleCount = 0;
+  uint8_t nextSampleIndex = 0;
 
 };
 

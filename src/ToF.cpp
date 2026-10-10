@@ -1,6 +1,7 @@
 #include "ToF.h"
 #include "config.h"
 #include "wiring.h"
+#include <algorithm>
 
 ToF::ToF() {}
 
@@ -36,6 +37,26 @@ int ToF::getFrontDistance() {
 
   // Apply the linear calibration configured in config.h.
   return static_cast<int>(rawDistance * TOF_CENTER_SLOPE + TOF_CENTER_OFFSET);
+}
+
+int ToF::getFilteredFrontDistance() {
+  const int currentDistance = getFrontDistance();
+  if (currentDistance >= 0) {
+    distanceSamples[nextSampleIndex] = currentDistance;
+    nextSampleIndex = (nextSampleIndex + 1) % FILTER_WINDOW_SIZE;
+    if (distanceSampleCount < FILTER_WINDOW_SIZE) {
+      ++distanceSampleCount;
+    }
+  }
+
+  if (distanceSampleCount == 0) return -1;
+
+  int orderedSamples[FILTER_WINDOW_SIZE];
+  for (uint8_t i = 0; i < distanceSampleCount; ++i) {
+    orderedSamples[i] = distanceSamples[i];
+  }
+  std::sort(orderedSamples, orderedSamples + distanceSampleCount);
+  return orderedSamples[distanceSampleCount / 2];
 }
 
 bool ToF::isReady() const {
