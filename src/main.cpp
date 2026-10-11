@@ -20,16 +20,7 @@ StraightPid straightPid(PID_KP, PID_KI, PID_KD, PID_INTEGRAL_LIMIT);
 float smoothedCorrection = 0.0f;
 long previousLeftTicks = 0;
 long previousRightTicks = 0;
-long diagnosticLeftDelta = 0;
-long diagnosticRightDelta = 0;
-float diagnosticCorrection = 0.0f;
-int diagnosticLeftPwm = 0;
-int diagnosticRightPwm = 0;
 unsigned long lastPidUpdate = 0;
-bool motorTestActive = false;
-unsigned long motorTestStarted = 0;
-bool pidTestActive = false;
-unsigned long pidTestStarted = 0;
 int frontDistanceMm = -1;
 unsigned long lastSensorUpdate = 0;
 
@@ -69,8 +60,6 @@ void startTurn() {
 }
 
 void stopAllMotion() {
-  motorTestActive = false;
-  pidTestActive = false;
   autonomousActive = false;
   motors.stop();
   changeMotionState(MotionState::IDLE);
@@ -87,42 +76,10 @@ void startAutonomousMode() {
   Serial.println("Autonomous mode started");
 }
 
-void startMotorTest(int leftSpeed, int rightSpeed) {
-  motorTestActive = true;
-  motorTestStarted = millis();
-  motors.setBoth(leftSpeed, rightSpeed);
-}
-
 void handleSerialCommands() {
   while (Serial.available() > 0) {
     const char command = Serial.read();
-    if (command == 'l') {
-      autonomousActive = false;
-      startMotorTest(MOTOR_TEST_PWM, 0);
-      Serial.println("Testing left motor");
-    } else if (command == 'r') {
-      autonomousActive = false;
-      startMotorTest(0, MOTOR_TEST_PWM);
-      Serial.println("Testing right motor");
-    } else if (command == 'b') {
-      autonomousActive = false;
-      startMotorTest(MOTOR_TEST_PWM, MOTOR_TEST_PWM);
-      Serial.println("Testing both motors");
-    } else if (command == 'p') {
-      autonomousActive = false;
-      motorTestActive = false;
-      resetEncoders();
-      previousLeftTicks = 0;
-      previousRightTicks = 0;
-      straightPid.reset();
-      smoothedCorrection = 0.0f;
-      pidTestActive = true;
-      pidTestStarted = millis();
-      lastPidUpdate = pidTestStarted;
-      Serial.println("PID test: driving straight, auto-stops");
-    } else if (command == 'a') {
-      motorTestActive = false;
-      pidTestActive = false;
+    if (command == 'a') {
       startAutonomousMode();
     } else if (command == 's') {
       stopAllMotion();
@@ -151,11 +108,6 @@ void updateStraightDrive(bool drive, int basePwm = BASE_PWM) {
       static_cast<int>(basePwm + correction), MIN_PWM, MAX_PWM);
   const int rightSpeed = constrain(
       static_cast<int>(basePwm - correction), MIN_PWM, MAX_PWM);
-    diagnosticLeftDelta += leftDelta;
-    diagnosticRightDelta += rightDelta;
-    diagnosticCorrection = correction;
-    diagnosticLeftPwm = leftSpeed;
-    diagnosticRightPwm = rightSpeed;
   motors.setBoth(leftSpeed, rightSpeed);
 }
 
@@ -261,7 +213,7 @@ void setup() {
   lastPidUpdate = millis();
   lastSensorUpdate = millis();
   Serial.println("Hardware initialization complete; motors stopped");
-  Serial.println("Commands: l=left, r=right, b=both, p=PID, a=auto, s=stop");
+  Serial.println("Commands: a=start autonomous mode, s=stop");
 }
 
 void loop() {
@@ -273,48 +225,8 @@ void loop() {
     frontDistanceMm = tof.getFilteredFrontDistance();
   }
 
-  if (motorTestActive && now - motorTestStarted >= MOTOR_TEST_DURATION_MS) {
-    motorTestActive = false;
-    motors.stop();
-    Serial.println("Motor test complete");
-  }
-
-  if (pidTestActive && now - pidTestStarted >= MOTOR_TEST_DURATION_MS) {
-    pidTestActive = false;
-    motors.stop();
-    Serial.printf("PID test complete: encLeft=%ld encRight=%ld (diff=%ld)\n",
-                  getEncoderLeft(), getEncoderRight(),
-                  getEncoderLeft() - getEncoderRight());
-  }
-
-  if (pidTestActive && now - lastPidUpdate >= PID_PERIOD_MS) {
-    lastPidUpdate = now;
-    updateStraightDrive(true);
-  }
-
   if (autonomousActive && now - lastPidUpdate >= PID_PERIOD_MS) {
     lastPidUpdate = now;
     updateAutonomousMode();
-  }
-
-  static unsigned long lastDiagnostic = 0;
-  if (now - lastDiagnostic >= PID_DIAGNOSTIC_PERIOD_MS) {
-    lastDiagnostic = now;
-    if (pidTestActive || (autonomousActive && motionState == MotionState::DRIVE)) {
-      Serial.printf("CTRL dL=%ld dR=%ld corr=%.1f pwmL=%d pwmR=%d\n",
-                    diagnosticLeftDelta, diagnosticRightDelta,
-                    diagnosticCorrection, diagnosticLeftPwm, diagnosticRightPwm);
-      diagnosticLeftDelta = 0;
-      diagnosticRightDelta = 0;
-    } else {
-      Serial.printf("encLeft=%ld  encRight=%ld\n",
-                    getEncoderLeft(), getEncoderRight());
-      Serial.printf("front distance=%d mm\n", frontDistanceMm);
-      Serial.printf("ToF raw=%u status=%u (%s) timeout=%d\n",
-                    tof.getLastRawDistance(),
-                    static_cast<unsigned>(tof.getLastRangeStatus()),
-                    VL53L1X::rangeStatusToString(tof.getLastRangeStatus()),
-                    tof.didLastReadTimeout());
-    }
   }
 }
