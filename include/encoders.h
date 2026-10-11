@@ -7,6 +7,8 @@
  *
  * Encoder values are updated asynchronously via hardware interrupts.
  */
+#pragma once
+
 #include <Arduino.h>
 
 extern volatile long encoderValueLeft;
@@ -45,4 +47,3 @@ long getEncoderLeft();
  * @return Current right encoder value.
  */
 long getEncoderRight();
-

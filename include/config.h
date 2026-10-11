@@ -43,7 +43,7 @@ constexpr unsigned long PID_PERIOD_MS = 50;
 /* ---------- obstacle avoidance ---------- */
 constexpr int OBSTACLE_DISTANCE_MM = 180;
 constexpr int OBSTACLE_CLEAR_DISTANCE_MM = 230;
-constexpr int TARGET_STOP_DISTANCE_MM = 80;
+constexpr int TARGET_STOP_DISTANCE_MM = 50;
 constexpr unsigned long SENSOR_PERIOD_MS = 50;
 constexpr unsigned long BRAKE_TIME_MS = 150;
 constexpr int APPROACH_PWM = 180; // slower final approach; tune against motor stall speed
@@ -62,7 +62,7 @@ constexpr int PWM_FREQUENCY = 20000;
 constexpr int PWM_RESOLUTION = 8;
 
 // ---------- ToF sensor offsets (mm) ----------
-// linear regression on sensors to calbrate them
+// Linear calibration values for the center sensor.
 constexpr float TOF_CENTER_OFFSET = 0.0f;
 constexpr float TOF_CENTER_SLOPE = 1.0f;
 

@@ -18,7 +18,7 @@
 #include <VL53L1X.h>
 
 // ---------- ToF XSHUT pins ----------
-#define TOF_CENTER_XSHUT  19    // D15 (strap pin on ESP32)
+#define TOF_CENTER_XSHUT  19
 
 
 // ---------- I2C pins ----------
@@ -26,10 +26,10 @@
 #define I2C_SCL 22
 
 // ---------- MOTOR / ENCODER MAP ----------
-#define MTR_A_IN1 26  // D12 
-#define MTR_A_IN2 25  // D14
-#define MTR_B_IN1 33  // D27
-#define MTR_B_IN2 32  // D26
+#define MTR_A_IN1 26
+#define MTR_A_IN2 25
+#define MTR_B_IN1 33
+#define MTR_B_IN2 32
 
 // Encoders (quadrature)
 #define ENC_A_CH_A 15

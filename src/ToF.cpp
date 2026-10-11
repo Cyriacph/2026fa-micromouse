@@ -31,11 +31,15 @@ void ToF::initSensors() {
 int ToF::getFrontDistance() {
   // -1 tells the caller that the sensor is unavailable or timed out.
   lastReadTimedOut = false;
-  if (!ready) return -1;
+  if (!ready) {
+    return -1;
+  }
 
   lastRawDistance = center_sensor.read();
   lastReadTimedOut = center_sensor.timeoutOccurred();
-  if (lastReadTimedOut) return -1;
+  if (lastReadTimedOut) {
+    return -1;
+  }
   lastRangeStatus = center_sensor.ranging_data.range_status;
 
   // Ignore measurements the sensor itself marks as unreliable. If a target is
@@ -70,7 +74,9 @@ int ToF::getFilteredFrontDistance() {
     ++distanceSampleCount;
   }
 
-  if (distanceSampleCount == 0) return -1;
+  if (distanceSampleCount == 0) {
+    return -1;
+  }
 
   int orderedSamples[FILTER_WINDOW_SIZE];
   for (uint8_t i = 0; i < distanceSampleCount; ++i) {

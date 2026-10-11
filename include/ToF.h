@@ -21,10 +21,10 @@ public:
   ToF();
 
   /**
-    * @brief Initializes the front Time-of-Flight sensor.
+   * @brief Initializes the front Time-of-Flight sensor.
    *
-    * Configures I2C communication, resets the sensor through XSHUT,
-    * initializes the VL53L1X, and starts continuous ranging.
+   * Configures I2C communication, resets the sensor through XSHUT,
+   * initializes the VL53L1X, and starts continuous ranging.
    */
   void initSensors();
 
@@ -68,6 +68,4 @@ private:
   uint16_t lastRawDistance = 0;
   VL53L1X::RangeStatus lastRangeStatus = VL53L1X::None;
   bool lastReadTimedOut = false;
-
 };
-

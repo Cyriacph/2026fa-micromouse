@@ -53,11 +53,15 @@ bool Motors::begin(const MotorConfig& cfg) {
 
 void Motors::setLeft(int speed) {
   // The direction multiplier compensates for how the motor is mounted or wired.
-  if (initialized) writeMotor(motorConfig.left, MOTOR_LEFT_DIRECTION * speed);
+  if (initialized) {
+    writeMotor(motorConfig.left, MOTOR_LEFT_DIRECTION * speed);
+  }
 }
 
 void Motors::setRight(int speed) {
-  if (initialized) writeMotor(motorConfig.right, MOTOR_RIGHT_DIRECTION * speed);
+  if (initialized) {
+    writeMotor(motorConfig.right, MOTOR_RIGHT_DIRECTION * speed);
+  }
 }
 
 void Motors::setBoth(int leftSpeed, int rightSpeed) {
@@ -67,11 +71,15 @@ void Motors::setBoth(int leftSpeed, int rightSpeed) {
 
 void Motors::stop() {
   // Zero on both channels means coast, not active braking.
-  if (initialized) setBoth(0, 0);
+  if (initialized) {
+    setBoth(0, 0);
+  }
 }
 
 void Motors::brake() {
-  if (!initialized) return;
+  if (!initialized) {
+    return;
+  }
 
   // Driving both inputs high shorts the motor terminals through the MX1508,
   // producing active braking through the motor's back EMF.

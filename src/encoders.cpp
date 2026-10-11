@@ -49,6 +49,7 @@ long getEncoderLeft() {
 }
 
 long getEncoderRight() {
+  // Copy atomically because a pulse could arrive while the value is read.
   noInterrupts();
   const long value = encoderValueRight;
   interrupts();

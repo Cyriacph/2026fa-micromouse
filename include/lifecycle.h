@@ -5,14 +5,17 @@
 void disableWireless() {
   WiFi.mode(WIFI_OFF);
   WiFi.setSleep(true);
-  if (btStarted()) btStop();
+  if (btStarted()) {
+    btStop();
+  }
   esp_bt_controller_disable();
 }
 
 bool checkSerial() {
   Serial.begin(115200);
-  uint32_t t0 = millis();
-  while (!Serial && millis() - t0 < 2000) {}
-  Serial.println("Serial OK ✅");
+  const uint32_t startedAt = millis();
+  while (!Serial && millis() - startedAt < 2000) {
+  }
+  Serial.println("Serial OK");
   return true;
 }

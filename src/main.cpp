@@ -23,6 +23,7 @@ long previousRightTicks = 0;
 unsigned long lastPidUpdate = 0;
 int frontDistanceMm = -1;
 unsigned long lastSensorUpdate = 0;
+unsigned long lastDiagnosticUpdate = 0;
 
 enum class MotionState {
   IDLE,
@@ -88,21 +89,19 @@ void handleSerialCommands() {
   }
 }
 
-void updateStraightDrive(bool drive, int basePwm = BASE_PWM) {
+void updateStraightDrive(int basePwm = BASE_PWM) {
   const long leftTicks = getEncoderLeft();
   const long rightTicks = getEncoderRight();
   const long leftDelta = leftTicks - previousLeftTicks;
   const long rightDelta = rightTicks - previousRightTicks;
-    const float rawCorrection = constrain(
+  const float rawCorrection = constrain(
       straightPid.update(leftDelta, rightDelta, PID_PERIOD_MS / 1000.0f),
       -PID_MAX_CORRECTION_PWM, PID_MAX_CORRECTION_PWM);
-    smoothedCorrection += PID_CORRECTION_SMOOTHING *
-                          (rawCorrection - smoothedCorrection);
-    const float correction = smoothedCorrection;
+  smoothedCorrection += PID_CORRECTION_SMOOTHING *
+                        (rawCorrection - smoothedCorrection);
+  const float correction = smoothedCorrection;
   previousLeftTicks = leftTicks;
   previousRightTicks = rightTicks;
-
-  if (!drive) return;
 
   const int leftSpeed = constrain(
       static_cast<int>(basePwm + correction), MIN_PWM, MAX_PWM);
@@ -112,7 +111,9 @@ void updateStraightDrive(bool drive, int basePwm = BASE_PWM) {
 }
 
 void updateAutonomousMode() {
-  if (!autonomousActive) return;
+  if (!autonomousActive) {
+    return;
+  }
 
   const unsigned long elapsed = millis() - stateStartedAt;
   switch (motionState) {
@@ -127,7 +128,7 @@ void updateAutonomousMode() {
       } else if (frontDistanceMm <= OBSTACLE_DISTANCE_MM) {
         changeMotionState(MotionState::OBSTACLE_DETECTED);
       } else {
-        updateStraightDrive(true);
+        updateStraightDrive();
       }
       break;
 
@@ -150,7 +151,7 @@ void updateAutonomousMode() {
         motors.brake();
       } else {
         // Creep forward under PID until the filtered sensor reaches the target.
-        updateStraightDrive(true, APPROACH_PWM);
+        updateStraightDrive(APPROACH_PWM);
       }
       break;
 
@@ -189,7 +190,7 @@ void setup() {
   initEncoders();
   resetEncoders();
 
-  // Initialize the front distance sensor before the bench test starts.
+  // Initialize the front distance sensor before autonomous mode starts.
   tof.initSensors();
   Serial.println(tof.isReady() ? "ToF sensor ready" : "ToF sensor failed");
 
@@ -208,12 +209,16 @@ void setup() {
   motorConfig.max_pwm = MAX_PWM;
   motors.begin(motorConfig);
 
-  // The application starts in a safe state until motion logic is added.
+  // Keep the motors stopped until hardware initialization is complete.
   motors.stop();
   lastPidUpdate = millis();
   lastSensorUpdate = millis();
-  Serial.println("Hardware initialization complete; motors stopped");
-  Serial.println("Commands: a=start autonomous mode, s=stop");
+  Serial.println("Hardware initialization complete");
+  Serial.println("Autonomous mode starts automatically in 2 seconds; send 's' to stop");
+
+  // Give the operator time to set the mouse down before it starts driving.
+  delay(2000);
+  startAutonomousMode();
 }
 
 void loop() {
@@ -228,5 +233,13 @@ void loop() {
   if (autonomousActive && now - lastPidUpdate >= PID_PERIOD_MS) {
     lastPidUpdate = now;
     updateAutonomousMode();
+  }
+
+  // Diagnostic heartbeat: prints only, changes no behavior.
+  if (now - lastDiagnosticUpdate >= 200) {
+    lastDiagnosticUpdate = now;
+    Serial.printf("[%s] dist=%d encL=%ld encR=%ld\n",
+                  stateName(motionState), frontDistanceMm,
+                  getEncoderLeft(), getEncoderRight());
   }
 }

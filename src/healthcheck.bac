@@ -11,11 +11,14 @@
 
 // ---------- TEST DURATIONS ----------
 const uint32_t TOF_TEST_MS      = 10000;
-const uint32_t DRIVE_FWD_MS     = 10000;
-const uint32_t DRIVE_BWD_MS     = 10000;
 
 // ---------- MOTOR CONTROL (LEDC PWM) ----------
-struct MotorPins { int in1, in2, ch1, ch2; };
+struct MotorPins {
+  int in1;
+  int in2;
+  int ch1;
+  int ch2;
+};
 MotorPins motorA{MTR_A_IN1, MTR_A_IN2, 0, 1};
 MotorPins motorB{MTR_B_IN1, MTR_B_IN2, 2, 3};
 
@@ -39,21 +42,33 @@ void setupMotorPins(const MotorPins& m) {
 
 void setMotor(const MotorPins& m, int speed /* -255..255 */) {
   speed = constrain(speed, -255, 255);
-  if (speed >= 0) { ledcWrite(m.ch1, speed); ledcWrite(m.ch2, 0); }
-  else            { ledcWrite(m.ch1, 0);     ledcWrite(m.ch2, -speed); }
+  if (speed >= 0) {
+    ledcWrite(m.ch1, speed);
+    ledcWrite(m.ch2, 0);
+  } else {
+    ledcWrite(m.ch1, 0);
+    ledcWrite(m.ch2, -speed);
+  }
 }
 
-void stopAll(){ setMotor(motorA,0); setMotor(motorB,0); }
+void stopAll() {
+  setMotor(motorA, 0);
+  setMotor(motorB, 0);
+}
 
 // ---------------- serial helpers ----------------
 
 static inline bool enterPressedNow() {
   // non-blocking: returns true if we see '\r' or '\n'
-  if (!Serial.available()) return false;
+  if (!Serial.available()) {
+    return false;
+  }
   bool seen = false;
   while (Serial.available()) {
     int ch = Serial.read();
-    if (ch == '\r' || ch == '\n') seen = true;
+    if (ch == '\r' || ch == '\n') {
+      seen = true;
+    }
   }
   return seen;
 }
@@ -63,10 +78,14 @@ void waitForEnter(const char* prompt) {
   Serial.println(prompt);
   Serial.println("👉 Press Enter to continue...");
   // consume any pending bytes first so a stray newline doesn't skip
-  while (Serial.available()) Serial.read();
+  while (Serial.available()) {
+    Serial.read();
+  }
   // now block until enter
   while (true) {
-    if (enterPressedNow()) break;
+    if (enterPressedNow()) {
+      break;
+    }
     delay(1);
   }
 }
@@ -81,10 +100,14 @@ void encoderFreeTest() {
 
   uint32_t last = 0;
   // drain any stray input so we don't instantly exit
-  while (Serial.available()) Serial.read();
+  while (Serial.available()) {
+    Serial.read();
+  }
 
   while (true) {
-    if (enterPressedNow()) break;
+    if (enterPressedNow()) {
+      break;
+    }
     if (millis() - last >= 100) {
       Serial.printf("%lu ms\tencA=%ld\tencB=%ld\n",
         (unsigned long)millis(), getEncoderLeft(), getEncoderRight());
@@ -108,7 +131,9 @@ void driveUntilEnter(int speed, const char* label) {
 
   uint32_t last = 0;
   while (true) {
-    if (enterPressedNow()) break;
+    if (enterPressedNow()) {
+      break;
+    }
     if (millis() - last >= 100) {
       Serial.printf("%lu ms\tencA=%ld\tencB=%ld\n",
         (unsigned long)millis(), getEncoderLeft(), getEncoderRight());
@@ -123,52 +148,34 @@ void driveUntilEnter(int speed, const char* label) {
 // ---------------- ToF helpers ----------------
 
 static inline const char* fmtDist(int32_t mm, char* buf, size_t n) {
-  // Formats a non-negative distance (mm) into buf.
-  // Returns buf pointer.
-  if (mm < 0) mm = 0;                 // clamp low
-  if (mm > 8191) mm = 8191;           // clamp high (arbitrary, VL53L1X won’t reach this)
+  if (mm < 0) {
+    mm = 0;
+  }
+  if (mm > 8191) {
+    mm = 8191;
+  }
   snprintf(buf, n, "%ld", (long)mm);
   return buf;
 }
 
-void printToFUntilEnter(uint32_t /*ms*/) {
+void printToFUntilEnter(uint32_t durationMs) {
   Serial.println("\n=== ToF (VL53L1X) distance stream (ms, center in mm) ===");
   uint32_t t0 = millis();
-  char br[8], bc[8], bl[8];
+  char buffer[8];
 
-  while (true) {
-    if (enterPressedNow()) break;
+  while (millis() - t0 < durationMs) {
+    if (enterPressedNow()) {
+      break;
+    }
 
-    // 1) Read RAW (uint16_t)
-    uint16_t rc = sensors.getFrontDistance();
-
-    // 2) Format, applying offset ONLY if raw != 0
-    const char* sc = (rc == 0) ? "--" : fmtDist((int32_t)rc + TOF_CENTER_OFFSET, bc, sizeof(bc));
-
-    Serial.printf("%lu\t%s\n",
-      (unsigned long)(millis() - t0), sc);
+    const int distanceMm = sensors.getFrontDistance();
+    const char* distanceText = distanceMm < 0
+                                   ? "--"
+                                   : fmtDist(distanceMm, buffer, sizeof(buffer));
+    Serial.printf("%lu\t%s\n", (unsigned long)(millis() - t0), distanceText);
 
     delay(100);
   }
-}
-
-void driveAndReport(int speed, uint32_t ms, const char* label){
-  Serial.println();
-  Serial.printf("=== %s (speed=%d) ===\n", label, speed);
-  resetEncoders();
-  setMotor(motorA,  speed);
-  setMotor(motorB, -speed);
-  uint32_t t0 = millis(), last = 0;
-  while (millis() - t0 < ms){
-    if (millis() - last >= 100){
-      Serial.printf("%lu ms\tencA=%ld\tencB=%ld\n",
-        (unsigned long)(millis() - t0), getEncoderLeft(), getEncoderRight());
-      last = millis();
-    }
-    delay(1);
-  }
-  stopAll();
-  Serial.println("Stopped.");
 }
 
 // ---------------- Arduino setup/loop ----------------
@@ -177,21 +184,18 @@ void setup() {
   disableWireless();
   checkSerial();
 
-  Wire.begin(I2C_SDA, I2C_SCL);   // from wiring.h / your pinmap
-  Wire.setClock(400000); 
+  Wire.begin(I2C_SDA, I2C_SCL);
+  Wire.setClock(400000);
 
   // Quick pin notices
   Serial.println("\nPin sanity check:");
-  Serial.println("Motor pins are output-capable ✅");
-  if (MTR_A_IN1 == 12) {
-    Serial.println("⚠️  Note: GPIO12 is a boot-strap pin; if boot is flaky, move it to GPIO25.");
-  }
+  Serial.println("Motor pins are output-capable.");
 
   setupMotorPins(motorA);
   setupMotorPins(motorB);
   initEncoders();
 
-  Serial.println("\nInitializing ToF sensors (VL53L1X)...");
+  Serial.println("\nInitializing ToF sensor (VL53L1X)...");
   sensors.initSensors();
 
   // ======= Step 1: Sensor test (unchanged, 10 s) =======
@@ -213,4 +217,5 @@ void setup() {
   Serial.println("\n=== Test sequence complete ===");
 }
 
-void loop() {}
+void loop() {
+}
