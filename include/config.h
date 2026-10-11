@@ -32,12 +32,14 @@ constexpr int ENCODER_LEFT_DIRECTION = 1;
 constexpr int ENCODER_RIGHT_DIRECTION = -1;
 
 /* ---------- straight-line PID ---------- */
-constexpr float PID_KP = 1.5f;
+constexpr float PID_KP = 2.0f;
 constexpr float PID_KI = 0.0f;
 constexpr float PID_KD = 0.0f;
 constexpr float PID_INTEGRAL_LIMIT = 1000.0f;
-constexpr int PID_MAX_CORRECTION_PWM = 30;
-constexpr unsigned long PID_PERIOD_MS = 10;
+constexpr int PID_MAX_CORRECTION_PWM = 20;
+constexpr float PID_CORRECTION_SMOOTHING = 0.5f;
+constexpr unsigned long PID_PERIOD_MS = 50;
+constexpr unsigned long PID_DIAGNOSTIC_PERIOD_MS = 100;
 constexpr bool PID_DRIVE_ENABLED = true; // set to false to disable PID during bench testing
 
 /* ---------- obstacle avoidance ---------- */

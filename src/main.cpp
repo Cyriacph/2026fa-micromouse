@@ -17,8 +17,14 @@ static const int RIGHT_REV = MTR_B_IN2;  // MX1508 IN4
 Motors motors;
 ToF tof;
 StraightPid straightPid(PID_KP, PID_KI, PID_KD, PID_INTEGRAL_LIMIT);
+float smoothedCorrection = 0.0f;
 long previousLeftTicks = 0;
 long previousRightTicks = 0;
+long diagnosticLeftDelta = 0;
+long diagnosticRightDelta = 0;
+float diagnosticCorrection = 0.0f;
+int diagnosticLeftPwm = 0;
+int diagnosticRightPwm = 0;
 unsigned long lastPidUpdate = 0;
 bool motorTestActive = false;
 unsigned long motorTestStarted = 0;
@@ -75,6 +81,7 @@ void startAutonomousMode() {
   previousLeftTicks = 0;
   previousRightTicks = 0;
   straightPid.reset();
+  smoothedCorrection = 0.0f;
   autonomousActive = true;
   changeMotionState(MotionState::DRIVE);
   Serial.println("Autonomous mode started");
@@ -107,6 +114,8 @@ void handleSerialCommands() {
       resetEncoders();
       previousLeftTicks = 0;
       previousRightTicks = 0;
+      straightPid.reset();
+      smoothedCorrection = 0.0f;
       pidTestActive = true;
       pidTestStarted = millis();
       lastPidUpdate = pidTestStarted;
@@ -127,9 +136,12 @@ void updateStraightDrive(bool drive, int basePwm = BASE_PWM) {
   const long rightTicks = getEncoderRight();
   const long leftDelta = leftTicks - previousLeftTicks;
   const long rightDelta = rightTicks - previousRightTicks;
-  const float correction = constrain(
+    const float rawCorrection = constrain(
       straightPid.update(leftDelta, rightDelta, PID_PERIOD_MS / 1000.0f),
       -PID_MAX_CORRECTION_PWM, PID_MAX_CORRECTION_PWM);
+    smoothedCorrection += PID_CORRECTION_SMOOTHING *
+                          (rawCorrection - smoothedCorrection);
+    const float correction = smoothedCorrection;
   previousLeftTicks = leftTicks;
   previousRightTicks = rightTicks;
 
@@ -139,6 +151,11 @@ void updateStraightDrive(bool drive, int basePwm = BASE_PWM) {
       static_cast<int>(basePwm + correction), MIN_PWM, MAX_PWM);
   const int rightSpeed = constrain(
       static_cast<int>(basePwm - correction), MIN_PWM, MAX_PWM);
+    diagnosticLeftDelta += leftDelta;
+    diagnosticRightDelta += rightDelta;
+    diagnosticCorrection = correction;
+    diagnosticLeftPwm = leftSpeed;
+    diagnosticRightPwm = rightSpeed;
   motors.setBoth(leftSpeed, rightSpeed);
 }
 
@@ -167,6 +184,7 @@ void updateAutonomousMode() {
       previousLeftTicks = getEncoderLeft();
       previousRightTicks = getEncoderRight();
       straightPid.reset();
+      smoothedCorrection = 0.0f;
       changeMotionState(MotionState::BRAKE_APPROACH);
       break;
 
@@ -201,6 +219,7 @@ void updateAutonomousMode() {
         previousLeftTicks = 0;
         previousRightTicks = 0;
         straightPid.reset();
+        smoothedCorrection = 0.0f;
         changeMotionState(MotionState::DRIVE);
       } else if (frontDistanceMm >= 0) {
         // Continue pivoting in the same direction until the sensor sees clear.
@@ -279,15 +298,23 @@ void loop() {
   }
 
   static unsigned long lastDiagnostic = 0;
-  if (now - lastDiagnostic >= 200) {
+  if (now - lastDiagnostic >= PID_DIAGNOSTIC_PERIOD_MS) {
     lastDiagnostic = now;
-    Serial.printf("encLeft=%ld  encRight=%ld\n",
-                  getEncoderLeft(), getEncoderRight());
-    Serial.printf("front distance=%d mm\n", frontDistanceMm);
-    Serial.printf("ToF raw=%u status=%u (%s) timeout=%d\n",
-                  tof.getLastRawDistance(),
-                  static_cast<unsigned>(tof.getLastRangeStatus()),
-                  VL53L1X::rangeStatusToString(tof.getLastRangeStatus()),
-                  tof.didLastReadTimeout());
+    if (pidTestActive || (autonomousActive && motionState == MotionState::DRIVE)) {
+      Serial.printf("CTRL dL=%ld dR=%ld corr=%.1f pwmL=%d pwmR=%d\n",
+                    diagnosticLeftDelta, diagnosticRightDelta,
+                    diagnosticCorrection, diagnosticLeftPwm, diagnosticRightPwm);
+      diagnosticLeftDelta = 0;
+      diagnosticRightDelta = 0;
+    } else {
+      Serial.printf("encLeft=%ld  encRight=%ld\n",
+                    getEncoderLeft(), getEncoderRight());
+      Serial.printf("front distance=%d mm\n", frontDistanceMm);
+      Serial.printf("ToF raw=%u status=%u (%s) timeout=%d\n",
+                    tof.getLastRawDistance(),
+                    static_cast<unsigned>(tof.getLastRangeStatus()),
+                    VL53L1X::rangeStatusToString(tof.getLastRangeStatus()),
+                    tof.didLastReadTimeout());
+    }
   }
 }
