@@ -17,7 +17,7 @@ void ToF::initSensors() {
   Wire.begin(I2C_SDA, I2C_SCL);
 
   // A timeout prevents a missing or disconnected sensor from blocking forever.
-  center_sensor.setTimeout(50);
+  center_sensor.setTimeout(TOF_READ_TIMEOUT_MS);
   ready = center_sensor.init();
   if (!ready) {
     return;
@@ -30,13 +30,26 @@ void ToF::initSensors() {
 
 int ToF::getFrontDistance() {
   // -1 tells the caller that the sensor is unavailable or timed out.
+  lastReadTimedOut = false;
   if (!ready) return -1;
 
-  const int rawDistance = center_sensor.read();
-  if (center_sensor.timeoutOccurred()) return -1;
+  lastRawDistance = center_sensor.read();
+  lastReadTimedOut = center_sensor.timeoutOccurred();
+  if (lastReadTimedOut) return -1;
+  lastRangeStatus = center_sensor.ranging_data.range_status;
+
+  // Ignore measurements the sensor itself marks as unreliable. If a target is
+  // clipped by the minimum range, report it as very close for obstacle safety.
+  if (lastRangeStatus == VL53L1X::RangeValidMinRangeClipped) {
+    return 1;
+  }
+  if (lastRangeStatus != VL53L1X::RangeValid &&
+      lastRangeStatus != VL53L1X::RangeValidNoWrapCheckFail) {
+    return -1;
+  }
 
   // Apply the linear calibration configured in config.h.
-  return static_cast<int>(rawDistance * TOF_CENTER_SLOPE + TOF_CENTER_OFFSET);
+  return static_cast<int>(lastRawDistance * TOF_CENTER_SLOPE + TOF_CENTER_OFFSET);
 }
 
 int ToF::getFilteredFrontDistance() {
@@ -70,4 +83,16 @@ int ToF::getFilteredFrontDistance() {
 
 bool ToF::isReady() const {
   return ready;
+}
+
+uint16_t ToF::getLastRawDistance() const {
+  return lastRawDistance;
+}
+
+VL53L1X::RangeStatus ToF::getLastRangeStatus() const {
+  return lastRangeStatus;
+}
+
+bool ToF::didLastReadTimeout() const {
+  return lastReadTimedOut;
 }

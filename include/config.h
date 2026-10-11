@@ -21,7 +21,7 @@ constexpr int SPR = 33; // steps per revolution: SPR = E * Nw/Nm (not accurate)
 
 /* ---------- motion constants ---------- */
 constexpr int BASE_PWM = 200; // initial base PWM; 200 moved the motors in healthcheck
-constexpr int TURN_PWM = 170; // initial turn PWM; tune on the bench
+constexpr int TURN_PWM = 190; // increase if the timed turn still leaves the wall ahead
 constexpr int MIN_PWM = 0;
 constexpr int MAX_PWM = 255;
 
@@ -32,22 +32,24 @@ constexpr int ENCODER_LEFT_DIRECTION = 1;
 constexpr int ENCODER_RIGHT_DIRECTION = -1;
 
 /* ---------- straight-line PID ---------- */
-constexpr float PID_KP = 5.0f;
+constexpr float PID_KP = 1.5f;
 constexpr float PID_KI = 0.0f;
 constexpr float PID_KD = 0.0f;
 constexpr float PID_INTEGRAL_LIMIT = 1000.0f;
+constexpr int PID_MAX_CORRECTION_PWM = 30;
 constexpr unsigned long PID_PERIOD_MS = 10;
 constexpr bool PID_DRIVE_ENABLED = true; // set to false to disable PID during bench testing
 
 /* ---------- obstacle avoidance ---------- */
-constexpr int OBSTACLE_DISTANCE_MM = 100;
-constexpr int OBSTACLE_CLEAR_DISTANCE_MM = 130;
+constexpr int OBSTACLE_DISTANCE_MM = 180;
+constexpr int OBSTACLE_CLEAR_DISTANCE_MM = 230;
+constexpr int TARGET_STOP_DISTANCE_MM = 80;
 constexpr unsigned long SENSOR_PERIOD_MS = 50;
-constexpr unsigned long BRAKE_TIME_MS = 100;
-constexpr int BACK_CORRECTION_PWM = 100;
-constexpr unsigned long BACK_CORRECTION_MS = 80;
+constexpr unsigned long BRAKE_TIME_MS = 150;
+constexpr int APPROACH_PWM = 180; // slower final approach; tune against motor stall speed
 constexpr unsigned long TURN_TIME_MS = 600;
 constexpr int TOF_MAX_VALID_DISTANCE_MM = 4000;
+constexpr uint16_t TOF_READ_TIMEOUT_MS = 120;
 // Keep using the last valid median through brief sensor timeouts (~1 second).
 constexpr uint8_t TOF_MAX_CONSECUTIVE_INVALID_READS = 20;
 

@@ -45,6 +45,10 @@ public:
    */
   int getFilteredFrontDistance();
 
+  uint16_t getLastRawDistance() const;
+  VL53L1X::RangeStatus getLastRangeStatus() const;
+  bool didLastReadTimeout() const;
+
   /**
    * @brief Reports whether sensor initialization succeeded.
    *
@@ -61,6 +65,9 @@ private:
   uint8_t nextSampleIndex = 0;
   uint8_t consecutiveInvalidReads = 0;
   int lastFilteredDistance = -1;
+  uint16_t lastRawDistance = 0;
+  VL53L1X::RangeStatus lastRangeStatus = VL53L1X::None;
+  bool lastReadTimedOut = false;
 
 };
 

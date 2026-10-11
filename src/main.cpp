@@ -38,6 +38,7 @@ enum class MotionState {
 MotionState motionState = MotionState::IDLE;
 unsigned long stateStartedAt = 0;
 bool autonomousActive = false;
+int turnDirection = 1;
 
 const char* stateName(MotionState state) {
   switch (state) {
@@ -55,6 +56,10 @@ void changeMotionState(MotionState next) {
   motionState = next;
   stateStartedAt = millis();
   Serial.printf("State: %s\n", stateName(motionState));
+}
+
+void startTurn() {
+  changeMotionState(MotionState::TURN);
 }
 
 void stopAllMotion() {
@@ -117,22 +122,23 @@ void handleSerialCommands() {
   }
 }
 
-void updateStraightDrive(bool drive) {
+void updateStraightDrive(bool drive, int basePwm = BASE_PWM) {
   const long leftTicks = getEncoderLeft();
   const long rightTicks = getEncoderRight();
   const long leftDelta = leftTicks - previousLeftTicks;
   const long rightDelta = rightTicks - previousRightTicks;
-  const float correction = straightPid.update(
-      leftDelta, rightDelta, PID_PERIOD_MS / 1000.0f);
+  const float correction = constrain(
+      straightPid.update(leftDelta, rightDelta, PID_PERIOD_MS / 1000.0f),
+      -PID_MAX_CORRECTION_PWM, PID_MAX_CORRECTION_PWM);
   previousLeftTicks = leftTicks;
   previousRightTicks = rightTicks;
 
   if (!drive) return;
 
   const int leftSpeed = constrain(
-      static_cast<int>(BASE_PWM + correction), MIN_PWM, MAX_PWM);
+      static_cast<int>(basePwm + correction), MIN_PWM, MAX_PWM);
   const int rightSpeed = constrain(
-      static_cast<int>(BASE_PWM - correction), MIN_PWM, MAX_PWM);
+      static_cast<int>(basePwm - correction), MIN_PWM, MAX_PWM);
   motors.setBoth(leftSpeed, rightSpeed);
 }
 
@@ -158,23 +164,30 @@ void updateAutonomousMode() {
 
     case MotionState::OBSTACLE_DETECTED:
       motors.brake();
+      previousLeftTicks = getEncoderLeft();
+      previousRightTicks = getEncoderRight();
+      straightPid.reset();
       changeMotionState(MotionState::BRAKE_APPROACH);
       break;
 
     case MotionState::BRAKE_APPROACH:
-      if (elapsed < BRAKE_TIME_MS) {
+      if (frontDistanceMm < 0) {
         motors.brake();
-      } else if (elapsed < BRAKE_TIME_MS + BACK_CORRECTION_MS) {
-        motors.setBoth(-BACK_CORRECTION_PWM, -BACK_CORRECTION_PWM);
+      } else if (frontDistanceMm <= TARGET_STOP_DISTANCE_MM) {
+        motors.brake();
+        startTurn();
+      } else if (elapsed < BRAKE_TIME_MS) {
+        motors.brake();
       } else {
-        motors.stop();
-        changeMotionState(MotionState::TURN);
+        // Creep forward under PID until the filtered sensor reaches the target.
+        updateStraightDrive(true, APPROACH_PWM);
       }
       break;
 
     case MotionState::TURN:
       if (elapsed < TURN_TIME_MS) {
-        motors.setBoth(TURN_PWM, -TURN_PWM);
+        motors.setBoth(turnDirection * TURN_PWM,
+                       -turnDirection * TURN_PWM);
       } else {
         motors.stop();
         changeMotionState(MotionState::WAIT_CLEAR);
@@ -189,9 +202,9 @@ void updateAutonomousMode() {
         previousRightTicks = 0;
         straightPid.reset();
         changeMotionState(MotionState::DRIVE);
-      } else if (frontDistanceMm >= 0 &&
-                 frontDistanceMm <= OBSTACLE_DISTANCE_MM) {
-        changeMotionState(MotionState::OBSTACLE_DETECTED);
+      } else if (frontDistanceMm >= 0) {
+        // Continue pivoting in the same direction until the sensor sees clear.
+        startTurn();
       }
       break;
   }
@@ -271,5 +284,10 @@ void loop() {
     Serial.printf("encLeft=%ld  encRight=%ld\n",
                   getEncoderLeft(), getEncoderRight());
     Serial.printf("front distance=%d mm\n", frontDistanceMm);
+    Serial.printf("ToF raw=%u status=%u (%s) timeout=%d\n",
+                  tof.getLastRawDistance(),
+                  static_cast<unsigned>(tof.getLastRangeStatus()),
+                  VL53L1X::rangeStatusToString(tof.getLastRangeStatus()),
+                  tof.didLastReadTimeout());
   }
 }
