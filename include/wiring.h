@@ -35,7 +35,7 @@
 #define ENC_A_CH_A 15
 #define ENC_A_CH_B 2
 #define ENC_B_CH_A 4
-#define ENC_B_CH_B 5
+#define ENC_B_CH_B 3
 
 constexpr uint8_t ADDR_CENTER = 0x31;
 

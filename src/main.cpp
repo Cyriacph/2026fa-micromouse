@@ -190,9 +190,28 @@ void setup() {
   initEncoders();
   resetEncoders();
 
+  // TEMPORARY: bus level check, remove after debugging the sensor.
+  pinMode(I2C_SDA, INPUT);
+  pinMode(I2C_SCL, INPUT);
+  pinMode(TOF_CENTER_XSHUT, INPUT);
+  Serial.printf("Idle levels: SDA=%d SCL=%d XSHUT=%d (expect 1 1 1)\n",
+                digitalRead(I2C_SDA), digitalRead(I2C_SCL),
+                digitalRead(TOF_CENTER_XSHUT));
+
   // Initialize the front distance sensor before autonomous mode starts.
   tof.initSensors();
   Serial.println(tof.isReady() ? "ToF sensor ready" : "ToF sensor failed");
+
+  // TEMPORARY: I2C scan, remove after debugging the sensor.
+  int devicesFound = 0;
+  for (uint8_t address = 1; address < 127; ++address) {
+    Wire.beginTransmission(address);
+    if (Wire.endTransmission() == 0) {
+      Serial.printf("I2C device found at 0x%02X\n", address);
+      ++devicesFound;
+    }
+  }
+  Serial.printf("I2C scan done: %d device(s)\n", devicesFound);
 
   // Configure the motors with the correct pins and PWM settings
   MotorConfig motorConfig;

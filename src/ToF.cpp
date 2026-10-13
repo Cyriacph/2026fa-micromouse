@@ -20,6 +20,7 @@ void ToF::initSensors() {
   center_sensor.setTimeout(TOF_READ_TIMEOUT_MS);
   ready = center_sensor.init();
   if (!ready) {
+    Serial.println("ToF: center_sensor.init() FAILED (check wiring, XSHUT, I2C)");
     return;
   }
 
